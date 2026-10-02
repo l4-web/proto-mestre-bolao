@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- Símbolo L4 shippado no próprio front (public/brand/simbolo.png). Path
+         RELATIVO `./brand/...` → o Vite prefixa com o base do módulo e o nginx
+         serve. É o ícone da aba (tema L4), padrão de todos os módulos. -->
+    <link rel="icon" type="image/png" href="./brand/simbolo.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mestre do Bolão · Atende Aí (protótipo)</title>
+    <!-- Modo de cor: o L4 OS é CLARO, e o escuro foi retirado.
+
+         Este trecho IGNORA o `localStorage` e apaga a chave, e ignorar é o
+         ponto: a escolha vivia no navegador de cada pessoa, então quem clicou em
+         "Escuro" uma vez nascia escuro aqui, antes de qualquer JavaScript do app
+         rodar, e mudar o padrão do produto não alcançava essa pessoa. Apagar
+         evita que a chave fique esperando, invisível, para ressuscitar sozinha.
+
+         Pinta o fundo além de marcar o atributo: entre o HTML chegar e o CSS do
+         app carregar, o navegador usaria branco. -->
+    <script>
+      (function () {
+        try {
+          localStorage.removeItem("l4.modo-cor");
+        } catch (e) {}
+        var r = document.documentElement;
+        r.setAttribute("data-theme", "light");
+        r.style.colorScheme = "light";
+        r.style.backgroundColor = "#f2f2f7";
+      })();
+    </script>
+    <!-- Anti-FOUC: aplica cores/fundos do tema L4 CACHEADO (mesmo do master, mesma
+         origem) antes do bundle React, e, se o tema tiver favicon próprio —
+         sobrepõe o símbolo. O TenantThemeProvider do DS revalida depois. Sem cache
+         → fallback (nada acontece). -->
+    <script>
+      (function () {
+        try {
+          var host = localStorage.getItem("l4os.theme.devhost") || location.hostname.toLowerCase();
+          var raw = localStorage.getItem("l4os.theme." + host);
+          if (!raw) return;
+          var theme = (JSON.parse(raw) || {}).theme;
+          if (!theme) return;
+          var root = document.documentElement;
+          var tokens = theme.tokens || {};
+          for (var k in tokens) {
+            if (k.indexOf("--") === 0 && tokens[k]) root.style.setProperty(k, tokens[k]);
+          }
+          var a = theme.assets || {};
+          if (a.loginBackground) root.style.setProperty("--l4os-login-bg-image", 'url("' + a.loginBackground + '")');
+          if (a.appBackground) root.style.setProperty("--l4os-app-bg-image", 'url("' + a.appBackground + '")');
+          if (a.favicon) {
+            var link = document.querySelector('link[rel="icon"]') || document.createElement("link");
+            link.rel = "icon";
+            link.href = a.favicon;
+            if (!link.parentNode) document.head.appendChild(link);
+          }
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

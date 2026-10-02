@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.env
+.env.local
+.env.*.local
+*.tsbuildinfo
+.DS_Store
+.turbo/
+coverage/
+
+# Dado pessoal de producao (CPF de teste do iOn). NUNCA versionar.
+*CPF-EXEMPLO*

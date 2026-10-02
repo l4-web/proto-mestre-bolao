@@ -1,0 +1,140 @@
+/*
+ * Estilos globais do app (chrome/local). Os COMPONENTES vêm do @l4-web/ui,
+ * NÃO recrie botão/card/input/tabela aqui (regra do CLAUDE.md do monorepo).
+ * Tailwind é usado só para o layout do app (tema derivado dos tokens do DS em
+ * tailwind.config.ts).
+ *
+ * Ordem de import (main.tsx): este arquivo ANTES do `@l4-web/ui/styles.css`,
+ * para a lib vencer empates de utility.
+ */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    font-family:
+      -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text",
+      "Helvetica Neue", system-ui, sans-serif;
+    line-height: 1.5;
+  }
+  * {
+    box-sizing: border-box;
+  }
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  html,
+  body,
+  #root {
+    margin: 0;
+    min-height: 100%;
+  }
+}
+
+/* ── Cor temática: onde o DS tem variável, e onde ele ainda não tem ────────────
+ *
+ * O `@l4-web/ui` publica a paleta como variável CSS e troca tudo em
+ * `:root[data-theme=dark]`. O `tailwind.config.ts` deste app aponta os utilitários
+ * para essas variáveis, então `bg-surface` e `text-text-strong` acompanham o modo
+ * sem nenhum `dark:` na JSX.
+ *
+ * DUAS LACUNAS do DS que precisam de variável local, e valem virar issue na lib:
+ * ele expõe `--l4-text-strong` mas NÃO expõe o texto secundário nem o terciário.
+ * No claro eles são `rgba(60,60,67,.60)` e `.30`; no escuro, mantidos assim,
+ * ficariam praticamente invisíveis sobre `#1C1C1E`. Aqui viram `--atd-text-2` e
+ * `--atd-text-3`, com a escala da Apple no escuro.
+ */
+:root {
+  --atd-text-2: rgba(60, 60, 67, 0.6);
+  --atd-text-3: rgba(60, 60, 67, 0.3);
+}
+:root[data-theme="dark"] {
+  --atd-text-2: rgba(235, 235, 245, 0.6);
+  --atd-text-3: rgba(235, 235, 245, 0.32);
+}
+/* Modo "sistema" não estampa atributo nenhum no <html>, então o escuro do SO só
+ * é coberto por media query. Guardado contra `[data-theme=light]` para uma
+ * escolha explícita de claro vencer um SO escuro. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --atd-text-2: rgba(235, 235, 245, 0.6);
+    --atd-text-3: rgba(235, 235, 245, 0.32);
+  }
+}
+
+/* O fundo da página é do DS e muda com o modo. Sem isto o app nasce branco. */
+body {
+  background: var(--l4-page-bg);
+  color: rgb(var(--l4-text-strong));
+}
+
+/* ── Animações do shell (Spotlight / troca de página) ─────────────────────── */
+@keyframes l4-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes l4-spring-rise {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.l4-page-enter {
+  animation: l4-fade-in 240ms ease-out both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .l4-page-enter {
+    animation: none;
+  }
+}
+
+/* Esconde a scrollbar mantendo o scroll (sidebar/réguas). */
+.l4-no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.l4-no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/*
+  Entrada das peças que trocam de estado no lugar, como o turno na barra do inbox.
+
+  Existem aqui e não como classe arbitrária do Tailwind porque `animation` com
+  keyframes precisa dos dois lados: a classe utilitária referencia um nome que
+  alguém tem que declarar. Uma animação declarada dentro do componente viraria a
+  quarta cópia da mesma curva no projeto.
+*/
+@keyframes surgir {
+  from {
+    transform: scale(0.2);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes entrar {
+  from {
+    opacity: 0;
+    transform: translateX(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}

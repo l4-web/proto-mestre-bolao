@@ -1,0 +1,5 @@
+# Repo standalone (não é monorepo), mas o pnpm 11 lê settings daqui.
+# Aprova o build script do esbuild (usado pelo Vite) — sem isso o pnpm 11
+# bloqueia com ERR_PNPM_IGNORED_BUILDS.
+allowBuilds:
+  esbuild: true
