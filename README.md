@@ -34,3 +34,18 @@ Estado zera a cada recarga. Nada aqui é dado real.
   um provedor). `ponte.ts` liga isso às mensagens e etiquetas da conversa.
 - `src/components/bolao/`: painel, card de bolão, botões, modais (Cria Aí, enviar
   bolões, nova conversa).
+
+## Publicado
+
+https://l4-web.github.io/proto-mestre-bolao/ (GitHub Pages, branch `gh-pages`).
+
+Republicar depois de mexer:
+
+```
+VITE_BASE_PATH=/proto-mestre-bolao/ pnpm build && cp dist/index.html dist/404.html && touch dist/.nojekyll
+cd dist && git init -q -b gh-pages && git add -A && git commit -qm "Publica o build" \
+  && git push -f git@github.com:l4-web/proto-mestre-bolao.git gh-pages && rm -rf .git
+```
+
+O `404.html` é cópia do `index.html` para o link direto de uma tela (ex.: `/conversas`)
+abrir o app em vez da página de erro do Pages.
