@@ -1,0 +1,1 @@
+import{a as t}from"./react-C60AVq05.js";const s=8e3,o=6e4;function r(){const[i,n]=t.useState(()=>typeof document>"u"?!0:document.visibilityState==="visible");return t.useEffect(()=>{const e=()=>n(document.visibilityState==="visible");return document.addEventListener("visibilitychange",e),()=>document.removeEventListener("visibilitychange",e)},[]),i?s:o}export{r as u};

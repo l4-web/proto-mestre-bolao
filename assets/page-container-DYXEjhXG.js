@@ -1,0 +1,1 @@
+import{j as p,b as x}from"./index-jhv5ocys.js";function s({className:a,children:e,...n}){return p.jsx("div",{className:x("flex min-w-0 flex-col gap-2.5 px-3 py-2.5 md:px-6 md:py-4 xl:px-8",a),...n,children:e})}s.displayName="PageContainer";export{s as P};

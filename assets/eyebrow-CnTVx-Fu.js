@@ -1,0 +1,1 @@
+import{j as o,b as a}from"./index-jhv5ocys.js";import{a as r}from"./react-C60AVq05.js";const m=r.forwardRef(({className:t,...s},e)=>o.jsx("span",{ref:e,className:a("text-[12px] font-semibold text-text-muted",t),...s}));m.displayName="Eyebrow";export{m as E};
