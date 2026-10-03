@@ -181,28 +181,28 @@ export function AcoesThread({
         </Button>
       )}
 
-      {/*
-        TRANSFERIR VIROU TEXTO. Era um ícone de setas dentro da cápsula, e a pergunta
-        "como passo para a colega?" mostrou que ninguém lia aquilo como transferir.
-        Encaminhar (para equipe interna) segue como ícone, porque é raro na venda.
-      */}
-      {podeTransferir && (
-        <Button size="sm" variant="tinted" onClick={onTransferir} title="Transferir para outra pessoa ou fila">
-          <ArrowRightLeft className="h-3.5 w-3.5" aria-hidden />
-          Transferir
-        </Button>
-      )}
-      {podeEncaminhar && (
+      {(podeTransferir || podeEncaminhar) && (
         <Cluster>
-          <BotaoIcone
-            icon={Send}
-            rotulo={
-              temCasoAberto
-                ? "Encaminhar para uma equipe interna"
-                : "Abrir o caso e encaminhar para uma equipe interna"
-            }
-            onClick={onEncaminhar}
-          />
+          {podeTransferir && (
+            <BotaoIcone
+              icon={ArrowRightLeft}
+              rotulo="Transferir para outra pessoa ou fila"
+              onClick={onTransferir}
+            />
+          )}
+          {/* Encaminhar some no produto que não tem equipe interna para receber
+              (configuração do produto). */}
+          {podeEncaminhar && (
+            <BotaoIcone
+              icon={Send}
+              rotulo={
+                temCasoAberto
+                  ? "Encaminhar para uma equipe interna"
+                  : "Abrir o caso e encaminhar para uma equipe interna"
+              }
+              onClick={onEncaminhar}
+            />
+          )}
         </Cluster>
       )}
 

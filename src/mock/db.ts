@@ -1250,6 +1250,7 @@ export interface NovaMensagem {
   em?: string | Date;
   status_entrega?: string | null;
   origem_resposta?: Mensagem["origem_resposta"];
+  botoes?: string[];
 }
 
 export function _adicionarMensagem(conversaId: string, nova: NovaMensagem): Mensagem {
@@ -1275,6 +1276,7 @@ export function _adicionarMensagem(conversaId: string, nova: NovaMensagem): Mens
             ? "arvore"
             : null,
     created_at: nova.em ? new Date(nova.em).toISOString() : agoraIso(),
+    botoes: nova.botoes ?? null,
   };
   if (nova.url) {
     db.midias[id] = {

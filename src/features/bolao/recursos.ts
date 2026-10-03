@@ -11,13 +11,15 @@
  */
 
 export type PainelId = "catalogo" | "carrinho" | "cliente" | "consulta";
-export type AcaoId = "enviar_catalogo" | "criar_arte" | "carrinho" | "cliente";
 
 export interface RecursosProduto {
   /** Abas do painel lateral, na ordem. Uma só = sem abas (o painel atual do APCAP). */
   paineis: PainelId[];
-  /** Botões abaixo da caixa de mensagem. */
-  acoes: AcaoId[];
+  /**
+   * Encaminhar para equipe interna. O APCAP tem Pagamentos e Dev; o bolão ainda não
+   * tem equipe para receber, e um ícone que leva a lugar nenhum só confunde.
+   */
+  encaminhar: boolean;
   /** Filtros rápidos da lista: cada um é uma etiqueta da conversa. */
   recortesPorEtiqueta: { id: string; label: string; etiqueta: string }[];
   rotuloEncerrar: string;
@@ -31,12 +33,12 @@ export interface RecursosProduto {
 export const RECURSOS: Record<string, RecursosProduto> = {
   mestre_do_bolao: {
     paineis: ["catalogo", "carrinho", "cliente"],
-    acoes: ["enviar_catalogo", "criar_arte", "carrinho", "cliente"],
+    encaminhar: false,
     recortesPorEtiqueta: [
       { id: "pix", label: "Pix pendente", etiqueta: "Pix pendente" },
       { id: "premiados", label: "Prêmio", etiqueta: "Premiada" },
     ],
-    rotuloEncerrar: "Resolver",
+    rotuloEncerrar: "Encerrar",
     provedorCatalogo: {
       nome: "API Mestre do Bolão",
       rotuloItem: "bolão",
@@ -47,7 +49,7 @@ export const RECURSOS: Record<string, RecursosProduto> = {
   },
   apcap_vip: {
     paineis: ["consulta"],
-    acoes: [],
+    encaminhar: true,
     recortesPorEtiqueta: [],
     rotuloEncerrar: "Encerrar",
   },

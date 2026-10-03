@@ -51,6 +51,12 @@ export function Bolha({
   }
 
   const nosso = m.autor === "atendente" || m.autor === "bot";
+  /**
+   * Imagem SEM legenda vai solta, sem a bolha colorida em volta. Com a bolha azul a
+   * arte ganhava uma moldura grossa que lia como "selecionada", e no WhatsApp foto
+   * enviada não tem moldura.
+   */
+  const soImagem = Boolean(m.midia_gcs) && !m.conteudo && !corpoOculto && m.tipo === "image";
 
   // Raio grande em tudo, menos o canto de baixo do lado do autor na ÚLTIMA do
   // grupo, que é onde a cauda mora.
@@ -76,7 +82,7 @@ export function Bolha({
       >
         <div className="flex max-w-[76%] flex-col items-stretch">
           <div
-            className={[
+            className={soImagem ? "overflow-hidden rounded-[14px]" : [
               raio,
               // `overflow-wrap:anywhere` e quebra de linha preservada: código Pix e link
               // são uma palavra só de 120 caracteres e vazavam da bolha no celular.
@@ -84,6 +90,8 @@ export function Bolha({
               nosso
                 ? "bg-brand text-white"
                 : "bg-surface-chip text-text-strong",
+              // Com imagem E legenda a foto encosta na borda, como no WhatsApp.
+              m.midia_gcs && !corpoOculto ? "p-1 pb-2" : "",
             ].join(" ")}
           >
             {/*
@@ -92,11 +100,13 @@ export function Bolha({
               legenda sem a imagem é metade da mensagem.
             */}
             {m.midia_gcs && !corpoOculto && (
-              <span className={m.conteudo ? "mb-1.5 block" : "block"}>
+              <span className={m.conteudo ? "mb-1.5 block [&_img]:rounded-[15px] [&_img]:border-0" : "block [&_img]:border-0"}>
                 <Anexo mensagemId={m.id} tipo={m.tipo} />
               </span>
             )}
-            {m.conteudo ??
+            {m.conteudo && m.midia_gcs && !corpoOculto ? (
+              <span className="block px-2.5">{m.conteudo}</span>
+            ) : m.conteudo ??
               (m.midia_gcs && !corpoOculto ? null : (
                 <span
                   className={
@@ -113,6 +123,18 @@ export function Bolha({
                 </span>
               ))}
           </div>
+
+          {/* Botões de resposta da mensagem interativa: faixas separadas embaixo da
+              bolha, como o WhatsApp desenha. Aqui só mostram o que o cliente vê; quem
+              toca é ele. */}
+          {(m.botoes ?? []).map((rotulo) => (
+            <span
+              key={rotulo}
+              className="mt-[3px] block rounded-[14px] bg-surface-chip px-3 py-2 text-center text-[13.5px] font-semibold text-brand"
+            >
+              {rotulo}
+            </span>
+          ))}
 
           {ultima && (
             <span

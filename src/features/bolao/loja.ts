@@ -17,6 +17,7 @@ export interface MensagemPonte {
   autor: "atendente" | "cliente" | "sistema";
   texto?: string;
   imagemUrl?: string;
+  botoes?: string[];
 }
 
 export interface Ponte {
@@ -67,6 +68,18 @@ interface Estado {
   cpfs: Record<string, string>;
   vendas: { valor: number; em: number }[];
   semeadas: Record<string, true>;
+  /** Bolões oferecidos com botão "Quero minha cota", por conversa (mais recente no fim). */
+  ofertas: Record<string, string[]>;
+  /** Chamadas feitas pelo Dispara Aí que ainda não tiveram resposta. */
+  disparos: Disparo[];
+}
+
+export interface Disparo {
+  id: string;
+  nome: string;
+  telefone: string;
+  texto: string;
+  em: number;
 }
 
 let estado: Estado = {
@@ -76,6 +89,8 @@ let estado: Estado = {
   cpfs: {},
   vendas: [],
   semeadas: {},
+  ofertas: {},
+  disparos: [],
 };
 const ouvintes = new Set<() => void>();
 
@@ -184,27 +199,73 @@ export function definirCpf(conversaId: string, cpf: string) {
   mudar((e) => ({ ...e, cpfs: { ...e.cpfs, [conversaId]: cpf } }));
 }
 
-/** "Enviar bolões": a arte padrão de cada um + um texto com os links rastreados. */
-export function enviarBoloes(conversaId: string, ids: string[]) {
-  const lista = ids.map(bolaoPorId).filter(Boolean) as Bolao[];
-  lista.forEach((b) => ponte.postar(conversaId, { autor: "atendente", imagemUrl: arteBolao(b, "padrao", MEU_CODIGO) }));
+export const BOTAO_COTA = "Quero minha cota";
+
+/**
+ * A arte vai como MENSAGEM INTERATIVA do WhatsApp: imagem no topo, legenda e o
+ * botão "Quero minha cota" de verdade. Desenhado dentro da imagem ele não fazia
+ * nada (imagem não tem área clicável); como botão de resposta, o toque volta para a
+ * conversa dizendo qual bolão, e a cota já cai reservada no carrinho.
+ */
+function oferecer(conversaId: string, b: Bolao, modelo: ModeloArte) {
   ponte.postar(conversaId, {
     autor: "atendente",
-    texto:
-      "Os bolões de hoje:\n" +
-      lista
-        .map((b) => `• ${b.modalidade} ${b.concurso} (${b.sorteio}): ${brl(b.precoCota)} a cota, ${b.cotasLivres} livres. ${linkRastreado(b, MEU_CODIGO)}`)
-        .join("\n") +
-      "\nQual você quer? Posso reservar agora.",
+    imagemUrl: arteBolao(b, modelo, MEU_CODIGO),
+    texto: `${b.modalidade} ${b.concurso} (${b.sorteio}) · ${brl(b.precoCota)} a cota · ${b.cotasLivres} livres\n${linkRastreado(b, MEU_CODIGO)}`,
+    botoes: [BOTAO_COTA],
   });
+  mudar((e) => ({
+    ...e,
+    ofertas: {
+      ...e.ofertas,
+      [conversaId]: [...(e.ofertas[conversaId] ?? []).filter((x) => x !== b.id), b.id],
+    },
+  }));
+}
+
+/** "Enviar bolões": uma linha de abertura e uma mensagem interativa por bolão. */
+export function enviarBoloes(conversaId: string, ids: string[]) {
+  const lista = ids.map(bolaoPorId).filter(Boolean) as Bolao[];
+  if (lista.length === 0) return;
+  ponte.postar(conversaId, {
+    autor: "atendente",
+    texto: lista.length > 1 ? "Separei os bolões de hoje pra você 👇" : "Olha esse bolão 👇",
+  });
+  lista.forEach((b) => oferecer(conversaId, b, "padrao"));
 }
 
 /* ── arte (Cria Aí) ─────────────────────────────────────────────────────────── */
 
 export function enviarArte(conversaId: string, bolaoId: string, modelo: ModeloArte) {
   const b = bolaoPorId(bolaoId);
-  if (!b) return;
-  ponte.postar(conversaId, { autor: "atendente", imagemUrl: arteBolao(b, modelo, MEU_CODIGO) });
+  if (b) oferecer(conversaId, b, modelo);
+}
+
+/** O cliente tocou em "Quero minha cota" embaixo da arte de um bolão. */
+export function simularToqueCota(conversaId: string, bolaoId: string) {
+  const b = bolaoPorId(bolaoId);
+  if (!b) return false;
+  ponte.postar(conversaId, { autor: "cliente", texto: `${BOTAO_COTA} · ${b.modalidade} ${b.concurso}` });
+  const ok = adicionarAoCarrinho(conversaId, bolaoId);
+  ponte.postar(conversaId, {
+    autor: "sistema",
+    texto: ok
+      ? `O cliente tocou no botão: 1 cota de ${b.modalidade} ${b.concurso} reservada no carrinho por 30 min. Falta o CPF para gerar o Pix.`
+      : `O cliente tocou no botão, mas ${b.modalidade} ${b.concurso} esgotou. Ofereça outro bolão.`,
+  });
+  return ok;
+}
+
+/* ── chamada ativa (Dispara Aí) ─────────────────────────────────────────────── */
+
+export function registrarDisparo(d: Omit<Disparo, "id" | "em">) {
+  mudar((e) => ({ ...e, disparos: [...e.disparos, { ...d, id: `dsp-${Date.now()}`, em: Date.now() }] }));
+}
+
+export function tirarDisparo(id: string) {
+  const d = estado.disparos.find((x) => x.id === id);
+  mudar((e) => ({ ...e, disparos: e.disparos.filter((x) => x.id !== id) }));
+  return d;
 }
 
 /* ── cobrança (módulo do bolão → Idea) ─────────────────────────────────────── */

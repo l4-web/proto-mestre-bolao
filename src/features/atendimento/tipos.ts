@@ -139,6 +139,11 @@ export interface Mensagem {
   status_entrega: string | null;
   origem_resposta: "arvore" | "ia" | "humano" | null;
   created_at: string;
+  /**
+   * Botões de resposta do WhatsApp (mensagem interativa, até 3). O cliente toca e
+   * o rótulo volta como resposta dele. Opcional: só mensagem interativa tem.
+   */
+  botoes?: string[] | null;
 }
 
 /**

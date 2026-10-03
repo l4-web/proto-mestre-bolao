@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { FlaskConical, Inbox, MessageSquare, Plus, Trophy } from "lucide-react";
+import { FlaskConical, Hand, Inbox, MessageSquare, Plus, Trophy } from "lucide-react";
 import {
   Button,
   MenuSuspenso,
+  useToast,
   ControleLinha,
   PageContainer,
   PageHeader,
@@ -57,13 +58,19 @@ import { PainelProduto } from "../components/bolao/PainelProduto";
 import { AcoesProduto } from "../components/bolao/AcoesProduto";
 import {
   ModalCriaAi,
-  ModalEnviarBoloes,
   ModalNovaConversa,
   ModalRespostaCliente,
 } from "../components/bolao/ModaisBolao";
 import { recursosDe, type PainelId } from "../features/bolao/recursos";
-import { simularResultado, simularRespostaCliente } from "../features/bolao/loja";
-import { criarConversaPorTemplate, novoLeadDaLanding } from "../features/bolao/ponte";
+import {
+  bolaoPorId,
+  registrarDisparo,
+  simularRespostaCliente,
+  simularResultado,
+  simularToqueCota,
+  useLoja,
+} from "../features/bolao/loja";
+import { clienteRespondeDisparo, novoLeadDaLanding } from "../features/bolao/ponte";
 import { CabecalhoThread } from "../components/conversa/CabecalhoThread";
 import { AcoesThread } from "../components/conversa/AcoesThread";
 import { Composer } from "../components/conversa/Composer";
@@ -239,7 +246,9 @@ export function ConversasPage() {
   // Peças do produto (Mestre do Bolão): a aba do painel, os modais do bolão e a
   // simulação. A aba sobe para cá porque os botões da caixa de mensagem a abrem.
   const [abaPainel, setAbaPainel] = useState<PainelId>("catalogo");
-  const [modalBolao, setModalBolao] = useState<"arte" | "enviar" | "nova" | "resposta" | null>(null);
+  const [modalBolao, setModalBolao] = useState<"arte" | "nova" | "resposta" | null>(null);
+  const loja = useLoja();
+  const { toast } = useToast();
   const [arteBolaoId, setArteBolaoId] = useState<string | null>(null);
   /**
    * A conversa também pode vir pela URL (`/conversas?conversa=<id>`).
@@ -661,8 +670,31 @@ export function ConversasPage() {
                     definirVisao("nao-atribuidas");
                   },
                 },
+                ...loja.disparos.map((d) => ({
+                  id: `dsp-${d.id}`,
+                  label: `${d.nome.split(" ")[0]} responde à chamada do Dispara Aí`,
+                  icon: MessageSquare,
+                  onSelect: () => {
+                    const id = clienteRespondeDisparo(d.id, "Oi! Quero sim, me manda os bolões");
+                    if (id) {
+                      definirVisao("minhas");
+                      setSelecionada(id);
+                    }
+                  },
+                })),
                 ...(conversa
                   ? [
+                      ...(loja.ofertas[conversa.id] ?? []).map((bid) => {
+                        const b = bolaoPorId(bid);
+                        return {
+                          id: `toque-${bid}`,
+                          label: `Cliente toca em Quero minha cota · ${b?.modalidade} ${b?.concurso}`,
+                          icon: Hand,
+                          onSelect: () => {
+                            if (simularToqueCota(conversa.id, bid)) setAbaPainel("carrinho");
+                          },
+                        };
+                      }),
                       { id: "resp", label: "Cliente responde nesta conversa", icon: MessageSquare, onSelect: () => setModalBolao("resposta") },
                       { id: "prem", label: "Sai resultado: cliente premiado", icon: Trophy, onSelect: () => simularResultado(conversa.id, true) },
                       { id: "nprem", label: "Sai resultado: sem prêmio", icon: Trophy, onSelect: () => simularResultado(conversa.id, false) },
@@ -944,7 +976,7 @@ export function ConversasPage() {
                     <AcoesThread
                       rotuloEncerrar={recursosDe(conversa.produto_slug).rotuloEncerrar}
                       podeTransferir={podeReatribuir}
-                      podeEncaminhar={podeEncaminhar}
+                      podeEncaminhar={podeEncaminhar && recursosDe(conversa.produto_slug).encaminhar}
                       podeEncerrar={podeEncerrar}
                       temCasoAberto={Boolean(atendimentoAberto)}
                       ehMinha={conversa.responsavel === meuId}
@@ -1054,16 +1086,7 @@ export function ConversasPage() {
                   produtoSlug={conversa.produto_slug}
                   conversaId={conversa.id}
                   nomeCliente={conversa.contato?.nome ?? "Cliente"}
-                  onAcao={(a) => {
-                    if (a === "enviar_catalogo") setModalBolao("enviar");
-                    else if (a === "criar_arte") {
-                      setArteBolaoId(null);
-                      setModalBolao("arte");
-                    } else {
-                      setAbaPainel(a === "carrinho" ? "carrinho" : "cliente");
-                      if (!mostrarContexto) setContextoAberto(true);
-                    }
-                  }}
+                  onAbrirPainel={mostrarContexto ? undefined : () => setContextoAberto(true)}
                 />
               )}
               {podeResponder ? (
@@ -1360,11 +1383,6 @@ export function ConversasPage() {
             conversaId={conversa.id}
             onFechar={() => setModalBolao(null)}
           />
-          <ModalEnviarBoloes
-            aberto={modalBolao === "enviar"}
-            conversaId={conversa.id}
-            onFechar={() => setModalBolao(null)}
-          />
           <ModalRespostaCliente
             aberto={modalBolao === "resposta"}
             onFechar={() => setModalBolao(null)}
@@ -1376,16 +1394,18 @@ export function ConversasPage() {
         aberto={modalBolao === "nova"}
         onFechar={() => setModalBolao(null)}
         onCriar={({ nome, telefone, texto }) => {
-          const id = criarConversaPorTemplate({ nome, telefone, texto, responsavel: meuId ?? null });
+          registrarDisparo({ nome, telefone, texto });
           setModalBolao(null);
-          definirVisao("minhas");
-          setSelecionada(id);
+          toast({
+            title: `Enviado pelo Dispara Aí para ${nome.split(" ")[0]}`,
+            description: "A conversa entra na sua fila quando o cliente responder. Simule em Simular.",
+          });
         }}
       />
 
       <Sheet open={contextoAberto} onOpenChange={setContextoAberto}>
         <SheetContent side="right" size="sm">
-          <SheetHeader>Dados do participante</SheetHeader>
+          <SheetHeader>{conversa && recursosDe(conversa.produto_slug).paineis.length > 1 ? "Bolões, carrinho e cliente" : "Dados do participante"}</SheetHeader>
           <SheetBody>
             {conversa && (
               <PainelProduto

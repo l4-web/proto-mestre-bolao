@@ -11,6 +11,7 @@ import {
   bolaoPorId,
   clienteDe,
   definirCpf,
+  enviarBoloes,
   garantirSemente,
   gerarPix,
   removerDoCarrinho,
@@ -114,9 +115,16 @@ function AbaCatalogo({
 }) {
   const { boloes } = useLoja();
   const [modalidade, setModalidade] = useState("");
+  const [marcados, setMarcados] = useState<string[]>([]);
   const { toast } = useToast();
+  // Trocar de conversa limpa a seleção: marcar bolões para um cliente e mandar para
+  // o próximo seria o pior engano possível aqui.
+  useEffect(() => setMarcados([]), [conversaId]);
   const modalidades = useMemo(() => [...new Set(boloes.map((b) => b.modalidade))], [boloes]);
   const lista = boloes.filter((b) => !modalidade || b.modalidade === modalidade);
+  const alternar = (id: string) =>
+    setMarcados((m) => (m.includes(id) ? m.filter((x) => x !== id) : [...m, id]));
+
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between gap-2 px-1">
@@ -133,6 +141,8 @@ function AbaCatalogo({
         <CardBolao
           key={b.id}
           bolao={b}
+          selecionado={marcados.includes(b.id)}
+          onSelecionar={() => alternar(b.id)}
           onArte={() => onArte(b.id)}
           onCarrinho={() => {
             if (adicionarAoCarrinho(conversaId, b.id)) {
@@ -142,6 +152,26 @@ function AbaCatalogo({
           }}
         />
       ))}
+      {/* A ação do lote fica GRUDADA no fim da coluna enquanto há seleção: rolar até o
+          último card para achar o botão faria a vendedora perder a conta do que marcou. */}
+      <div className="sticky bottom-0 rounded-[18px] bg-surface p-1 shadow-[var(--l4-sh-rest)]">
+        <Button
+          variant="filled"
+          className="w-full"
+          disabled={marcados.length === 0}
+          onClick={() => {
+            enviarBoloes(conversaId, marcados);
+            toast({ title: marcados.length > 1 ? `${marcados.length} bolões enviados` : "Bolão enviado", description: "Cada um com a arte e o botão Quero minha cota." });
+            setMarcados([]);
+          }}
+        >
+          {marcados.length === 0
+            ? "Marque os bolões para enviar"
+            : marcados.length === 1
+              ? "Enviar 1 bolão na conversa"
+              : `Enviar ${marcados.length} bolões na conversa`}
+        </Button>
+      </div>
     </div>
   );
 }
@@ -238,7 +268,7 @@ function AbaCarrinho({ conversa, fonte }: { conversa: ConversaDetalhe; fonte?: s
             if (!b) return null;
             return (
               <div key={i.bolaoId} className="flex items-center gap-2 rounded-[12px] bg-[var(--l4-fill-5)] px-2.5 py-2">
-                <span className="h-8 w-1 flex-none rounded-full" style={{ background: b.cor }} />
+                <span className="size-2 flex-none rounded-full" style={{ background: b.cor }} />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-[12.5px] font-semibold text-text-strong">
                     {i.cotas}× {b.modalidade} {b.concurso}

@@ -51,8 +51,7 @@ ${selo}
 <text x="40" y="310" font-size="56" font-weight="800" fill="#fff">${esc(bolao.premioEstimado)}</text>
 <rect x="40" y="420" width="520" height="200" rx="22" fill="#fff"/>
 ${linhas}
-<rect x="40" y="640" width="520" height="64" rx="18" fill="#fff"/>
-<text x="300" y="682" font-size="26" font-weight="800" fill="${bolao.cor}" text-anchor="middle">Quero minha cota</text>
+<text x="40" y="676" font-size="22" font-weight="700" fill="#fff">Garanta a sua cota com a ${esc(codigo.replace(/\d+$/, "").charAt(0) + codigo.replace(/\d+$/, "").slice(1).toLowerCase())}</text>
 <text x="300" y="736" font-size="15" fill="#fff" opacity=".85" text-anchor="middle">${esc(linkRastreado(bolao, codigo))} · Proibido para menores de 18 anos</text>
 </svg>`;
   return dataUrl(svg);
